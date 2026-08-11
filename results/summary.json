@@ -5,18 +5,20 @@
       "category": "aggregation",
       "accuracy": 0.0,
       "bleu": 0.049,
-      "rouge_l": 0.07,
-      "latency_s": 0.009,
-      "n": 4
+      "rouge_l": 0.069,
+      "latency_s": 0.103,
+      "context_tokens": 352.2,
+      "n": 10
     },
     {
       "system": "baseline",
       "category": "ambiguous",
       "accuracy": 0.0,
-      "bleu": 0.026,
+      "bleu": 0.027,
       "rouge_l": 0.0,
-      "latency_s": 0.011,
-      "n": 2
+      "latency_s": 0.104,
+      "context_tokens": 381.667,
+      "n": 6
     },
     {
       "system": "baseline",
@@ -24,44 +26,49 @@
       "accuracy": 0.0,
       "bleu": 0.049,
       "rouge_l": 0.069,
-      "latency_s": 0.01,
-      "n": 4
+      "latency_s": 0.105,
+      "context_tokens": 338.125,
+      "n": 8
     },
     {
       "system": "baseline",
       "category": "relationship",
       "accuracy": 0.0,
-      "bleu": 0.036,
+      "bleu": 0.034,
       "rouge_l": 0.0,
-      "latency_s": 0.011,
-      "n": 2
+      "latency_s": 0.106,
+      "context_tokens": 307.0,
+      "n": 6
     },
     {
       "system": "baseline",
       "category": "trend",
       "accuracy": 0.0,
-      "bleu": 0.049,
+      "bleu": 0.048,
       "rouge_l": 0.069,
-      "latency_s": 0.009,
-      "n": 3
+      "latency_s": 0.103,
+      "context_tokens": 345.167,
+      "n": 6
     },
     {
       "system": "graphrag",
       "category": "aggregation",
       "accuracy": 1.0,
-      "bleu": 0.09,
-      "rouge_l": 0.113,
-      "latency_s": 0.017,
-      "n": 4
+      "bleu": 0.089,
+      "rouge_l": 0.112,
+      "latency_s": 0.012,
+      "context_tokens": 19.1,
+      "n": 10
     },
     {
       "system": "graphrag",
       "category": "ambiguous",
       "accuracy": 1.0,
-      "bleu": 0.066,
-      "rouge_l": 0.192,
-      "latency_s": 0.038,
-      "n": 2
+      "bleu": 0.063,
+      "rouge_l": 0.179,
+      "latency_s": 0.031,
+      "context_tokens": 40.0,
+      "n": 6
     },
     {
       "system": "graphrag",
@@ -69,8 +76,9 @@
       "accuracy": 1.0,
       "bleu": 0.053,
       "rouge_l": 0.074,
-      "latency_s": 0.077,
-      "n": 4
+      "latency_s": 0.018,
+      "context_tokens": 88.375,
+      "n": 8
     },
     {
       "system": "graphrag",
@@ -78,33 +86,37 @@
       "accuracy": 1.0,
       "bleu": 0.109,
       "rouge_l": 0.286,
-      "latency_s": 0.123,
-      "n": 2
+      "latency_s": 0.031,
+      "context_tokens": 42.0,
+      "n": 6
     },
     {
       "system": "graphrag",
       "category": "trend",
       "accuracy": 1.0,
-      "bleu": 0.042,
+      "bleu": 0.046,
       "rouge_l": 0.0,
-      "latency_s": 0.029,
-      "n": 3
+      "latency_s": 0.013,
+      "context_tokens": 65.333,
+      "n": 6
     }
   ],
   "overall": [
     {
       "system": "baseline",
       "accuracy": 0.0,
-      "bleu": 0.044,
-      "rouge_l": 0.051,
-      "latency_s": 0.01
+      "bleu": 0.043,
+      "rouge_l": 0.046,
+      "latency_s": 0.104,
+      "context_tokens": 345.278
     },
     {
       "system": "graphrag",
       "accuracy": 1.0,
-      "bleu": 0.07,
-      "rouge_l": 0.113,
-      "latency_s": 0.052
+      "bleu": 0.073,
+      "rouge_l": 0.125,
+      "latency_s": 0.02,
+      "context_tokens": 49.5
     }
   ]
 }

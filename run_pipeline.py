@@ -65,7 +65,35 @@ def build_systems(df, use_neo4j: bool = False):
 
     graphrag = lambda q: answerer.answer(hybrid.retrieve(q))
     baseline = VectorOnlyRAG(vector, linker).answer
-    return graphrag, baseline, clean, report
+    return graphrag, baseline, clean, report, linker
+
+
+def demo_questions(graphrag, clean):
+    """Auto-generated questions over whatever entities the dataset holds,
+    each verified against an independent pandas aggregate."""
+    import pandas as pd  # noqa: F401
+
+    print("\n=== Demonstration on this dataset ===")
+    inds = clean[["indicator_id", "indicator"]].drop_duplicates().values[:3]
+    states = sorted(clean.state.unique())
+    years = sorted({p[:4] for p in clean.period})
+    passed = total = 0
+    for slug, name in inds:
+        sub = clean[clean.indicator_id == slug]
+        state = sub.state.value_counts().index[0]
+        year = sorted({p[:4] for p in sub.period})[-1]
+        q = f"What was the total {name} in {state} in {year}?"
+        expected = sub[(sub.state == state) & sub.period.str.startswith(year)]["value"].sum()
+        ans = graphrag(q)
+        ok = f"{expected:,.0f}" in ans.text
+        total += 1
+        passed += ok
+        print(f"\nQ: {q}\nA: {ans.text}")
+        print(f"   [{'OK' if ok else 'MISMATCH'}] independent pandas total: {expected:,.0f}; "
+              f"{ans.provenance_summary()}")
+    print(f"\n{passed}/{total} spot-checks matched. "
+          f"Dataset: {len(clean):,} records, {len(states)} states, years {years[0]}-{years[-1]}.")
+    print("Note: the 36-query benchmark (with fixed ground truth) runs on --source synthetic.")
 
 
 def main():
@@ -80,13 +108,20 @@ def main():
     df = load_data(args.source)
     print(f"[extraction] {len(df):,} records from {args.source}")
 
-    graphrag, baseline, clean, report = build_systems(df, use_neo4j=args.neo4j)
+    graphrag, baseline, clean, report, _ = build_systems(df, use_neo4j=args.neo4j)
 
     if args.ask:
         ans = graphrag(args.ask)
         print(f"\nQ: {args.ask}\nA: {ans.text}\n   ({ans.provenance_summary()})")
         b = baseline(args.ask)
         print(f"\n[baseline] {b.text}")
+        return
+
+    if args.source != "synthetic":
+        # The 36-query benchmark carries ground truth tied to the synthetic
+        # dataset; on other sources, run a demonstration over the actual
+        # entities instead.
+        demo_questions(graphrag, clean)
         return
 
     results = run_comparison(graphrag, baseline, clean)

@@ -1,0 +1,10 @@
+{
+  "graphrag": {
+    "faithfulness": 0.8718,
+    "answer_relevancy": 0.8569
+  },
+  "baseline": {
+    "faithfulness": 0.6948,
+    "answer_relevancy": 0.6322
+  }
+}

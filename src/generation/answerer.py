@@ -25,12 +25,30 @@ class Answer:
     triplets: list = field(default_factory=list)
     record_ids: list = field(default_factory=list)
     n_supporting_values: int = 0
+    context_chars: int = 0        # size of retrieved context (Experiment B)
+    contexts: list = field(default_factory=list)  # the retrieved context itself
     mode: str = "offline"
 
     def provenance_summary(self) -> str:
         return (f"grounded in {self.n_supporting_values} data values; "
                 f"{len(self.triplets)} triplets; "
                 f"records e.g. {self.record_ids[:3]}")
+
+
+def context_lines(ctx: HybridContext) -> list[str]:
+    """The retrieved context as text: graph facts first, then passages.
+
+    Shared by both answer modes and by the evaluation (RAGAS contexts,
+    hallucination check), so what is measured is exactly what was retrieved.
+    """
+    g = ctx.graph
+    lines = list(g.triplets)
+    if g.ranking:
+        lines.append("Ranking: " + "; ".join(f"{n}: {t:,.0f}" for n, t in g.ranking))
+    if g.series:
+        lines.append("Yearly series: " + "; ".join(f"{y}: {v:,.0f}" for y, v in g.series))
+    lines += [c.text for c, _ in ctx.chunks]
+    return lines
 
 
 class OfflineAnswerer:
@@ -46,10 +64,12 @@ class OfflineAnswerer:
             "ambiguous": self._ambiguous,
         }[g.intent](ctx)
         rids = g.record_ids
+        lines = context_lines(ctx)
         return Answer(question=ctx.linked.question, text=text,
                       triplets=g.triplets, record_ids=rids[:200],
                       n_supporting_values=sum(f.n_values for f in g.facts),
-                      mode="offline")
+                      context_chars=sum(len(t) for t in g.triplets),
+                      contexts=lines, mode="offline")
 
     def _aggregation(self, ctx) -> str:
         f = ctx.graph.facts[0]
@@ -65,9 +85,10 @@ class OfflineAnswerer:
             return "No data found to compare."
         top = r[0]
         f = ctx.graph.facts[0]
+        word = ctx.graph.direction
         lines = ", ".join(f"{name}: {total:,.0f}" for name, total in r[:5])
-        return (f"{top[0]} had the highest {f.indicator} "
-                f"({top[1]:,.0f}) for period {f.period}. Top results — {lines}.")
+        return (f"{top[0]} had the {word} {f.indicator} "
+                f"({top[1]:,.0f}) for period {f.period}. Ranked results — {lines}.")
 
     def _trend(self, ctx) -> str:
         s = ctx.graph.series
@@ -114,21 +135,12 @@ class LLMAnswerer:
 
     def answer(self, ctx: HybridContext) -> Answer:
         g = ctx.graph
-        context_lines = ["Graph facts (triplets):"] + g.triplets
-        if g.ranking:
-            context_lines.append("Ranking: " + "; ".join(
-                f"{n}: {t:,.0f}" for n, t in g.ranking))
-        if g.series:
-            context_lines.append("Yearly series: " + "; ".join(
-                f"{y}: {v:,.0f}" for y, v in g.series))
-        context_lines.append("Supporting records:")
-        context_lines += [c.text for c, _ in ctx.chunks]
-
+        lines = context_lines(ctx)
         resp = self.client.chat.completions.create(
             model=self.model,
             messages=[
                 {"role": "system", "content": self.SYSTEM},
-                {"role": "user", "content": "Context:\n" + "\n".join(context_lines)
+                {"role": "user", "content": "Context:\n" + "\n".join(lines)
                                             + f"\n\nQuestion: {ctx.linked.question}"},
             ],
             temperature=0,
@@ -138,7 +150,8 @@ class LLMAnswerer:
                       text=resp.choices[0].message.content.strip(),
                       triplets=g.triplets, record_ids=rids[:200],
                       n_supporting_values=sum(f.n_values for f in g.facts),
-                      mode="llm")
+                      context_chars=sum(len(l) for l in lines),
+                      contexts=lines, mode="llm")
 
 
 def default_answerer():

@@ -75,13 +75,24 @@ def rouge_l(candidate: str, reference: str) -> float:
 
 # ---------- RAGAS (optional, needs LLM) ----------
 def evaluate_ragas(records: list[dict]) -> dict | None:
-    """records: [{question, answer, contexts: [str], ground_truth}]"""
+    """records: [{question, answer, contexts: [str], ground_truth}]
+
+    Uses the ragas 0.2.x API (see the pinned `ragas` extra in pyproject.toml).
+    Returns None with a printed reason when ragas cannot be imported.
+    """
     try:
-        from datasets import Dataset
         from ragas import evaluate
+        from ragas.dataset_schema import EvaluationDataset
         from ragas.metrics import answer_relevancy, faithfulness
-    except ImportError:
+    except Exception as e:  # ModuleNotFoundError, or broken transitive deps
+        print(f"[ragas] unavailable: {type(e).__name__}: {e}")
+        print("[ragas] install the pinned extra: uv sync --extra ragas --extra llm")
         return None
-    ds = Dataset.from_list(records)
+    data = [{"user_input": r["question"], "response": r["answer"],
+             "retrieved_contexts": list(r["contexts"]),
+             "reference": r["ground_truth"]} for r in records]
+    ds = EvaluationDataset.from_list(data)
     result = evaluate(ds, metrics=[faithfulness, answer_relevancy])
-    return {k: float(v) for k, v in result.items()}
+    df = result.to_pandas()
+    return {c: round(float(df[c].mean()), 4)
+            for c in ("faithfulness", "answer_relevancy") if c in df.columns}

@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DHIS2 GraphRAG — ask your health data</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/htm@3.1.1/dist/htm.umd.js" crossorigin></script>
+<style>
+  :root{
+    --bg:#f4f6f8; --card:#fff; --ink:#1a2733; --muted:#5c6b7a;
+    --accent:#0b6e4f; --accent-soft:#e3f2ec; --base:#8a5a00; --base-soft:#fdf3e0;
+    --border:#dde4ea; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+  }
+  *{box-sizing:border-box} body{margin:0;font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header h1{font-size:17px;margin:0}
+  header .sub{color:var(--muted);font-size:13px}
+  .status{margin-left:auto;font-size:12px;color:var(--muted)}
+  .status .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#c33;margin-right:5px}
+  .status .dot.ok{background:#2a9d5c}
+  main{max-width:880px;margin:0 auto;padding:16px 12px 130px}
+  .msg{margin:14px 0;display:flex;flex-direction:column}
+  .q{align-self:flex-end;background:var(--accent);color:#fff;padding:9px 14px;border-radius:16px 16px 4px 16px;max-width:85%}
+  .a{align-self:flex-start;background:var(--card);border:1px solid var(--border);padding:12px 14px;border-radius:16px 16px 16px 4px;max-width:92%;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .a.baseline{border-left:4px solid var(--base);background:var(--base-soft)}
+  .a.graphrag{border-left:4px solid var(--accent)}
+  .chips{display:flex;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+  .chip{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--accent-soft);color:var(--accent);font-weight:600}
+  .chip.b{background:var(--base-soft);color:var(--base);border:1px solid #e8d5ae}
+  .chip.gray{background:#eef1f4;color:var(--muted)}
+  details{margin-top:8px;font-size:13px}
+  summary{cursor:pointer;color:var(--muted)}
+  .trip{font-family:var(--mono);font-size:12px;background:#f7f9fa;border:1px solid var(--border);border-radius:6px;padding:6px 8px;margin:4px 0;overflow-x:auto;white-space:nowrap}
+  .prov{color:var(--muted);font-size:12px;margin-top:6px}
+  form{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-top:1px solid var(--border);padding:12px}
+  .row{max-width:880px;margin:0 auto;display:flex;gap:8px}
+  input[type=text]{flex:1;padding:11px 14px;border:1px solid var(--border);border-radius:10px;font-size:15px;outline:none}
+  input[type=text]:focus{border-color:var(--accent)}
+  button{background:var(--accent);color:#fff;border:0;border-radius:10px;padding:0 20px;font-size:15px;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  label.cmp{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);max-width:880px;margin:8px auto 0}
+  .suggest{display:flex;gap:6px;flex-wrap:wrap;margin:16px 0}
+  .suggest button{background:var(--card);color:var(--ink);border:1px solid var(--border);border-radius:16px;padding:7px 12px;font-size:13px}
+  .err{color:#b23; font-size:13px}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+const {useState,useEffect,useRef} = React;
+const html = htm.bind(React.createElement);
+
+const SUGGESTIONS = [
+  "What was the malaria incidence in Kano State in 2024?",
+  "Which LGA had the highest TB cases notified in 2024?",
+  "How has immunisation coverage changed in Lagos State over the last five years?",
+  "Which diseases are most prevalent in northern Nigeria?",
+  "Where is the current outbreak?",
+];
+
+function AnswerCard({r, system}){
+  const cls = system === "baseline" ? "a baseline" : "a graphrag";
+  return html`<div class=${cls}>
+    <div class="chips">
+      <span class=${system==="baseline"?"chip b":"chip"}>${system==="baseline"?"Vector-only baseline":"GraphRAG"}</span>
+      <span class="chip gray">${r.intent}</span>
+      <span class="chip gray">${r.latency_s.toFixed(2)}s</span>
+      <span class="chip gray">${r.mode}</span>
+    </div>
+    <div>${r.answer}</div>
+    ${r.triplets.length > 0 && html`<details>
+      <summary>Provenance — ${r.triplets.length} triplets, ${r.n_supporting_values} data values</summary>
+      ${r.triplets.map((t,i)=>html`<div class="trip" key=${i}>${t}</div>`)}
+      <div class="prov">Supporting records: ${r.record_ids.slice(0,8).join(", ")}${r.record_ids.length>8?" …":""}</div>
+    </details>`}
+    ${r.triplets.length === 0 && html`<div class="prov">grounded in ${r.n_supporting_values} retrieved passages (no graph provenance)</div>`}
+  </div>`;
+}
+
+function App(){
+  const [msgs,setMsgs] = useState([]);
+  const [q,setQ] = useState("");
+  const [busy,setBusy] = useState(false);
+  const [compare,setCompare] = useState(false);
+  const [healthy,setHealthy] = useState(null);
+  const endRef = useRef(null);
+
+  useEffect(()=>{ fetch("/health").then(r=>r.json())
+    .then(h=>setHealthy(h.status==="ok")).catch(()=>setHealthy(false)); },[]);
+  useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs]);
+
+  async function ask(question){
+    if(!question.trim() || busy) return;
+    setBusy(true); setQ("");
+    setMsgs(m=>[...m,{kind:"q",text:question}]);
+    try{
+      const calls = [fetch("/query",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question})}).then(r=>r.json())];
+      if(compare) calls.push(fetch("/baseline/query",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question})}).then(r=>r.json()));
+      const [g,b] = await Promise.all(calls);
+      setMsgs(m=>[...m,{kind:"a",system:"graphrag",r:g},
+                  ...(b?[{kind:"a",system:"baseline",r:b}]:[])]);
+    }catch(e){
+      setMsgs(m=>[...m,{kind:"err",text:"Query failed: "+e.message}]);
+    }finally{ setBusy(false); }
+  }
+
+  return html`
+    <header>
+      <h1>DHIS2 GraphRAG</h1>
+      <span class="sub">natural-language querying of public health data, with provenance</span>
+      <span class="status"><span class=${"dot"+(healthy?" ok":"")}></span>${healthy===null?"connecting…":healthy?"pipeline ready":"backend offline"}</span>
+    </header>
+    <main>
+      ${msgs.length===0 && html`<div class="suggest">
+        ${SUGGESTIONS.map(s=>html`<button key=${s} onClick=${()=>ask(s)}>${s}</button>`)}
+      </div>`}
+      ${msgs.map((m,i)=> m.kind==="q" ? html`<div class="msg" key=${i}><div class="q">${m.text}</div></div>`
+        : m.kind==="err" ? html`<div class="msg err" key=${i}>${m.text}</div>`
+        : html`<div class="msg" key=${i}><${AnswerCard} r=${m.r} system=${m.system}/></div>`)}
+      <div ref=${endRef}></div>
+    </main>
+    <form onSubmit=${e=>{e.preventDefault();ask(q);}}>
+      <div class="row">
+        <input type="text" placeholder="Ask about your health data…" value=${q}
+               onInput=${e=>setQ(e.target.value)} disabled=${busy}/>
+        <button disabled=${busy||!q.trim()}>${busy?"…":"Ask"}</button>
+      </div>
+      <label class="cmp"><input type="checkbox" checked=${compare}
+             onChange=${e=>setCompare(e.target.checked)}/>
+        compare with vector-only baseline</label>
+    </form>`;
+}
+ReactDOM.createRoot(document.getElementById("root")).render(html`<${App}/>`);
+</script>
+</body>
+</html>

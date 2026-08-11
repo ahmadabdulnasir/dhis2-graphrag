@@ -67,7 +67,7 @@ class ValidationReport:
 
     @property
     def meets_targets(self) -> bool:
-        return self.completeness >= 0.95 and self.consistency >= 0.90
+        return bool(self.completeness >= 0.95 and self.consistency >= 0.90)
 
     def summary(self) -> str:
         return (

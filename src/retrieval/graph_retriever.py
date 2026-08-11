@@ -20,6 +20,7 @@ from src.retrieval.entity_linker import LinkedQuery
 @dataclass
 class GraphContext:
     intent: str
+    direction: str = "highest"
     facts: list[AggResult] = field(default_factory=list)
     ranking: list[tuple[str, float]] = field(default_factory=list)  # (name, total)
     series: list[tuple[str, float]] = field(default_factory=list)   # (year, total)
@@ -64,11 +65,12 @@ class GraphRetriever:
         return ctx
 
     def _comparison(self, lq: LinkedQuery) -> GraphContext:
-        ctx = GraphContext(intent="comparison")
+        ctx = GraphContext(intent="comparison", direction=lq.direction)
         group_by = "lga" if "lga" in lq.question.lower() else "state"
         results = self.store.compare(lq.indicator_id, group_by=group_by,
                                      period_prefix=self._period(lq), state=lq.state)
-        ranked = sorted(results.items(), key=lambda kv: kv[1].total, reverse=True)
+        ranked = sorted(results.items(), key=lambda kv: kv[1].total,
+                        reverse=(lq.direction == "highest"))
         ctx.ranking = [(name, r.total) for name, r in ranked]
         ctx.facts = [r for _, r in ranked[:5]]
         return ctx

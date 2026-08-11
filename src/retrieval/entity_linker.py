@@ -21,6 +21,7 @@ class LinkedQuery:
     region: str | None = None
     years: list[str] = field(default_factory=list)
     intent: str = "aggregation"
+    direction: str = "highest"      # "highest" | "lowest" (for comparisons)
     ambiguous_reason: str | None = None
 
 
@@ -39,7 +40,9 @@ class EntityLinker:
         for slug, name in self.indicators.items():
             candidates = [name.lower()] + INDICATOR_SYNONYMS.get(slug, [])
             for c in candidates:
-                if re.search(rf"\b{re.escape(c)}\b", q) and len(c) > best_len:
+                # lookarounds instead of \b so names ending in ')' or '+'
+                # (e.g. DHS "ANC 4+ visits (%)") still match
+                if re.search(rf"(?<!\w){re.escape(c)}(?!\w)", q) and len(c) > best_len:
                     lq.indicator_id, best_len = slug, len(c)
 
         # geography
@@ -51,6 +54,8 @@ class EntityLinker:
             if l.lower() in q:
                 lq.lga = l
                 break
+        if lq.lga and lq.lga == lq.state:
+            lq.lga = None  # state-level datasets mirror states as LGAs
         if re.search(r"\bnorth(ern)?\b", q):
             lq.region = "North"
         elif re.search(r"\bsouth(ern)?\b", q):
@@ -63,6 +68,9 @@ class EntityLinker:
             words = {"two": 2, "three": 3, "four": 4, "five": 5}
             n = words.get(m.group(1), None) or (int(m.group(1)) if m.group(1).isdigit() else 5)
             lq.years = [str(y) for y in range(2025 - n + 1, 2026)]
+
+        if re.search(r"\b(lowest|least|fewest|worst|bottom)\b", q):
+            lq.direction = "lowest"
 
         # intent
         if re.search(r"\b(trend|changed|change|over the last|over time|evolution)\b", q):

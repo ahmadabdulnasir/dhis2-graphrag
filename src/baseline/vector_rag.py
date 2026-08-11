@@ -63,7 +63,10 @@ class VectorOnlyRAG:
             text = f"Most relevant record found: {top}"
         return Answer(question=question, text=text,
                       triplets=[], record_ids=rids[:200],
-                      n_supporting_values=n, mode="baseline-offline")
+                      n_supporting_values=n,
+                      context_chars=sum(len(c.text) for c, _ in chunks),
+                      contexts=[c.text for c, _ in chunks],
+                      mode="baseline-offline")
 
     # ---------- llm ----------
     def _answer_llm(self, question: str, chunks) -> Answer:
@@ -84,4 +87,6 @@ class VectorOnlyRAG:
         rids = [r for c, _ in chunks for r in c.record_ids]
         return Answer(question=question, text=resp.choices[0].message.content.strip(),
                       triplets=[], record_ids=rids[:200],
-                      n_supporting_values=len(chunks), mode="baseline-llm")
+                      n_supporting_values=len(chunks),
+                      context_chars=len(context),
+                      contexts=[c.text for c, _ in chunks], mode="baseline-llm")

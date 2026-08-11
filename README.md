@@ -21,8 +21,15 @@ uv run python run_pipeline.py
 uv run python run_pipeline.py --ask "What was the malaria incidence in Kano State in 2024?"
 
 # tests
-uv run --with pytest pytest -q
+uv run --with pytest --with httpx pytest -q
+
+# API server (http://localhost:8000/docs)
+uv run uvicorn src.api.main:app --reload
 ```
+
+API endpoints: `POST /query` (GraphRAG answer + triplets + provenance +
+latency), `POST /baseline/query` (vector-only, for side-by-side demos),
+`GET /entities`, `GET /health`. Env: `GRAPHRAG_SOURCE`, `GRAPHRAG_NEO4J=1`.
 
 Results land in `results/` (`query_results.csv`, `summary.json`, `summary.md`).
 
@@ -78,8 +85,23 @@ src/
 4. Natural-language interface with provenance, ≤10s latency — answers carry
    triplets + record ids; current latency ~0.02s offline. FastAPI/React UI: next phase
 5. Evaluation vs vector-only baseline (RAGAS, BLEU/ROUGE, expert review) —
-   harness done with 15 starter queries; expand to 30–50 and enable RAGAS
+   harness done with 36 queries in the target 30–50 range (aggregation 10,
+   comparison 8, trend 6, relationship 6, ambiguous 6); enable RAGAS
    (`--extra ragas` + API key) for the final experiments
+
+## Scripts
+
+- `scripts/verify_neo4j.py` — parity check: Neo4j vs in-memory store (run after `docker compose up -d`)
+- `scripts/run_ragas.py` — LLM-mode evaluation: RAGAS faithfulness/relevance + hallucination-reduction measurement (needs `OPENAI_API_KEY` and `uv sync --extra ragas --extra llm`)
+- `scripts/make_figures.py` — regenerates all thesis figures into `figures/`
+  (Chapter 3 design figures 3.1–3.4 and Chapter 5 results charts)
+
+## Thesis documents
+
+Chapters 4–6 are generated from `../thesis/generate_chapters_4_6.js`
+(`node generate_chapters_4_6.js`), which embeds the results figures and writes
+`../Thesis_Chapters_4-6_Ahmad_Abdulnasir.docx`. Regenerate after any rerun
+that changes the numbers.
 
 ## Notes
 

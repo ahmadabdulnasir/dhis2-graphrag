@@ -44,6 +44,10 @@ def run_comparison(graphrag_answer_fn, baseline_answer_fn, df: pd.DataFrame,
 
     for q in queries:
         gold_num, gold_text = q.gold_fn(df)
+        if gold_num is None and gold_text is None:
+            continue  # dataset lacks the entities this query needs
+        if gold_num == 0 and q.category == "aggregation":
+            continue  # indicator/scope absent from this dataset
         reference = _gold_reference(q.category, gold_num, gold_text, q.question)
         for sys_name, fn in systems.items():
             t0 = time.perf_counter()
@@ -59,6 +63,8 @@ def run_comparison(graphrag_answer_fn, baseline_answer_fn, df: pd.DataFrame,
                 "rouge_l": round(metrics.rouge_l(ans.text, reference), 4),
                 "latency_s": round(latency, 4),
                 "n_supporting_values": ans.n_supporting_values,
+                "context_chars": ans.context_chars,          # Experiment B
+                "context_tokens_est": ans.context_chars // 4,
                 "mode": ans.mode,
             })
 
@@ -66,11 +72,13 @@ def run_comparison(graphrag_answer_fn, baseline_answer_fn, df: pd.DataFrame,
     summary = (res.groupby(["system", "category"])
                .agg(accuracy=("correct", "mean"), bleu=("bleu", "mean"),
                     rouge_l=("rouge_l", "mean"), latency_s=("latency_s", "mean"),
+                    context_tokens=("context_tokens_est", "mean"),
                     n=("correct", "size"))
                .round(3).reset_index())
     overall = (res.groupby("system")
                .agg(accuracy=("correct", "mean"), bleu=("bleu", "mean"),
-                    rouge_l=("rouge_l", "mean"), latency_s=("latency_s", "mean"))
+                    rouge_l=("rouge_l", "mean"), latency_s=("latency_s", "mean"),
+                    context_tokens=("context_tokens_est", "mean"))
                .round(3).reset_index())
 
     out = Path(out_dir)

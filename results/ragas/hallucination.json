@@ -1,0 +1,7 @@
+{
+  "graphrag_hallucination_rate": 0.139,
+  "baseline_hallucination_rate": 0.222,
+  "relative_reduction": 0.375,
+  "target_reduction": 0.3,
+  "target_met": true
+}
