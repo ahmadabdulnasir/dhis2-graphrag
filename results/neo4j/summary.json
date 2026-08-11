@@ -1,0 +1,110 @@
+{
+  "per_category": [
+    {
+      "system": "baseline",
+      "category": "aggregation",
+      "accuracy": 0.0,
+      "bleu": 0.049,
+      "rouge_l": 0.07,
+      "latency_s": 0.011,
+      "n": 4
+    },
+    {
+      "system": "baseline",
+      "category": "ambiguous",
+      "accuracy": 0.0,
+      "bleu": 0.026,
+      "rouge_l": 0.0,
+      "latency_s": 0.012,
+      "n": 2
+    },
+    {
+      "system": "baseline",
+      "category": "comparison",
+      "accuracy": 0.0,
+      "bleu": 0.049,
+      "rouge_l": 0.069,
+      "latency_s": 0.01,
+      "n": 4
+    },
+    {
+      "system": "baseline",
+      "category": "relationship",
+      "accuracy": 0.0,
+      "bleu": 0.036,
+      "rouge_l": 0.0,
+      "latency_s": 0.011,
+      "n": 2
+    },
+    {
+      "system": "baseline",
+      "category": "trend",
+      "accuracy": 0.0,
+      "bleu": 0.049,
+      "rouge_l": 0.069,
+      "latency_s": 0.009,
+      "n": 3
+    },
+    {
+      "system": "graphrag",
+      "category": "aggregation",
+      "accuracy": 1.0,
+      "bleu": 0.09,
+      "rouge_l": 0.113,
+      "latency_s": 0.033,
+      "n": 4
+    },
+    {
+      "system": "graphrag",
+      "category": "ambiguous",
+      "accuracy": 1.0,
+      "bleu": 0.066,
+      "rouge_l": 0.192,
+      "latency_s": 0.043,
+      "n": 2
+    },
+    {
+      "system": "graphrag",
+      "category": "comparison",
+      "accuracy": 1.0,
+      "bleu": 0.053,
+      "rouge_l": 0.074,
+      "latency_s": 0.117,
+      "n": 4
+    },
+    {
+      "system": "graphrag",
+      "category": "relationship",
+      "accuracy": 1.0,
+      "bleu": 0.109,
+      "rouge_l": 0.286,
+      "latency_s": 0.171,
+      "n": 2
+    },
+    {
+      "system": "graphrag",
+      "category": "trend",
+      "accuracy": 1.0,
+      "bleu": 0.042,
+      "rouge_l": 0.0,
+      "latency_s": 0.037,
+      "n": 3
+    }
+  ],
+  "overall": [
+    {
+      "system": "baseline",
+      "accuracy": 0.0,
+      "bleu": 0.044,
+      "rouge_l": 0.051,
+      "latency_s": 0.01
+    },
+    {
+      "system": "graphrag",
+      "accuracy": 1.0,
+      "bleu": 0.07,
+      "rouge_l": 0.113,
+      "latency_s": 0.076
+    }
+  ]
+}
